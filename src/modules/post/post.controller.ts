@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { postService } from './post.services';
-import { Post } from '../../../generated/prisma/client';
+import { Post, PostStatus } from '../../../generated/prisma/client';
 
 const createPost = async (req:Request, res:Response) => {
    
@@ -23,23 +23,35 @@ const createPost = async (req:Request, res:Response) => {
 };
 
 
-const getAllPosts = async (req:Request, res:Response)=>{
-    try{
+const getAllPosts = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query
+        const searchString = typeof search === 'string' ? search : undefined
 
-        const {search}= req.query
-        console.log("serach", search)
-        const searchString = typeof search === "string"? search: undefined
+        const tags = req.query.tags ? (req.query.tags as string).split(",") : [];
 
-        const result = await postService.getAllPosts(searchString ? {search: searchString} : {})
-        res.status(200).json({
-            posts: result
+
+        // true or false
+        const isFeatured = req.query.isFeatured
+            ? req.query.isFeatured === 'true'
+                ? true
+                : req.query.isFeatured === 'false'
+                    ? false
+                    : undefined
+            : undefined
+
+        const status = req.query.status as PostStatus | undefined
+
+        const authorId = req.query.authorId as string | undefined
+
+        const result = await postService.getAllPosts({ search: searchString, tags, isFeatured, status, authorId })
+        res.status(200).json(result)
+    } catch (e) {
+        res.status(400).json({
+            error: "Post creation failed",
+            details: e
         })
-
-    }catch(error){
-        console.error("Error fetching posts:", error)
-        res.status(500).json({message: "Internal server error"})
     }
-    
 }
 
 export const postController = {
