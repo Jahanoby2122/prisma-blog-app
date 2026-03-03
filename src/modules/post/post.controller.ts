@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { postService } from './post.services';
 import { Post, PostStatus } from '../../../generated/prisma/client';
+import pagenationShortingHelpers from '../../helpers/paganationShortingHelpers';
 
 const createPost = async (req:Request, res:Response) => {
    
@@ -44,17 +45,42 @@ const getAllPosts = async (req: Request, res: Response) => {
 
         const authorId = req.query.authorId as string | undefined
 
-        const result = await postService.getAllPosts({ search: searchString, tags, isFeatured, status, authorId })
+
+
+        const { page, limit, sortBy, sortOrder, skip } = pagenationShortingHelpers(req.query as any)
+
+        console.log("myoptions", { page, limit, sortBy, sortOrder, skip })
+
+        const result = await postService.getAllPosts({ search: searchString, tags, isFeatured, status, authorId, page , limit  , sortBy , sortOrder, skip })
         res.status(200).json(result)
     } catch (e) {
         res.status(400).json({
-            error: "Post creation failed",
+            error: "Post fetching failed",
             details: e
         })
     }
 }
 
+const getPostById = async(req: Request, res: Response)=>{
+    try{
+        const { postid } = req.params
+        if(!postid){
+            return res.status(400).json({error: "Post ID is required"})
+        }
+        console.log("get post by id", postid)
+         const result = await postService.getPostById(postid as string)
+         res.status(200).json(result)
+
+    }catch(error){
+       res.status(400).json({
+        error: "Post fetching failed",
+        details: error
+       })
+    }
+}
+
 export const postController = {
     createPost,
-    getAllPosts
+    getAllPosts,
+    getPostById
 }

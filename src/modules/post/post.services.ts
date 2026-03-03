@@ -21,13 +21,23 @@ const getAllPosts = async ({
     tags,
     isFeatured,
     status,
-    authorId
+    authorId,
+    page,
+    limit,
+    skip,
+    sortBy,
+    sortOrder
 }: {
     search: string | undefined,
     tags: string[] | [],
     isFeatured: boolean | undefined,
     status: PostStatus | undefined,
-    authorId: string | undefined
+    authorId: string | undefined,
+    page: number,
+    limit: number,
+    skip: number,
+    sortBy: string 
+    sortOrder: string 
 }) => {
     const andConditions: PostWhereInput[] = []
 
@@ -82,15 +92,87 @@ const getAllPosts = async ({
     }
 
     const allPost = await prisma.post.findMany({
+        take: limit,
+        skip,
+        where: {
+            AND: andConditions
+        },
+        orderBy:  {
+            [sortBy]: sortOrder
+        }
+    });
+
+    const total = await prisma.post.count({
         where: {
             AND: andConditions
         }
-    });
-    return allPost;
+    })
+    return {
+        data: allPost,
+        pagenation: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total/limit)
+          
+        }
+    };
+}
+
+
+const getPostById = async (postid: string)=>{
+    try{
+
+        return await prisma.$transaction(async (tx)=>{
+
+            const viewCount = await tx.post.update({
+            where: {
+                id: postid
+            },
+            data: {
+                views: {
+                    increment: 1
+                }
+            }
+        })
+
+    const postdata = await tx.post.findUnique({
+        where: {
+            id: postid
+        },
+        include: {
+            comments: {
+                where: {
+                    ParentId: null
+                },
+                orderBy: {
+                    createdAt: "desc"
+
+                },
+                include: {
+                    replay: {
+                        include: {
+                            replay: true
+                        }
+                    }
+                }
+            }
+        }
+    })
+    
+
+    return postdata
+        })
+
+
+    }catch(error){
+        console.error("Error fetching post by ID:", error)
+    }
 }
 
 
 export const postService = {
     createPost,
-    getAllPosts
+    getAllPosts,
+    getPostById
 }
