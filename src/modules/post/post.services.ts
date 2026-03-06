@@ -1,4 +1,4 @@
-import { Post, PostStatus } from "../../../generated/prisma/client";
+import { CommentStatus, Post, PostStatus } from "../../../generated/prisma/client";
 import { PostWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
 
@@ -99,6 +99,13 @@ const getAllPosts = async ({
         },
         orderBy:  {
             [sortBy]: sortOrder
+        },
+        include: {
+            _count: {
+                select: {
+                    comments: true
+                }
+            }
         }
     });
 
@@ -143,7 +150,8 @@ const getPostById = async (postid: string)=>{
         include: {
             comments: {
                 where: {
-                    ParentId: null
+                    ParentId: null,
+                    status: CommentStatus.APPROVED
                 },
                 orderBy: {
                     createdAt: "desc"
@@ -151,10 +159,26 @@ const getPostById = async (postid: string)=>{
                 },
                 include: {
                     replay: {
+                        where: {
+                            status: CommentStatus.APPROVED
+
+                        },
+                        orderBy: {
+                            createdAt: "asc"
+                        },
                         include: {
-                            replay: true
+                            replay:{
+                                where: {
+                                    status: CommentStatus.APPROVED
+                                }
+                            }
                         }
                     }
+                }
+            },
+            _count: {
+                select: {
+                    comments: true
                 }
             }
         }
@@ -171,8 +195,31 @@ const getPostById = async (postid: string)=>{
 }
 
 
+const getMyPosts = async (authorId: string)=>{
+
+    const result = await prisma.post.findMany({
+        where: {
+            AuthorId: authorId
+        },
+        orderBy: {
+            createdAt: "desc"
+        },
+        include: {
+            _count: {
+               select: {
+                    comments: true
+               }
+            }
+        }
+    })
+
+    return result
+
+}
+
 export const postService = {
     createPost,
     getAllPosts,
-    getPostById
+    getPostById,
+    getMyPosts
 }

@@ -67,8 +67,27 @@ const getPostById = async(req: Request, res: Response)=>{
         if(!postid){
             return res.status(400).json({error: "Post ID is required"})
         }
-        console.log("get post by id", postid)
+
          const result = await postService.getPostById(postid as string)
+         res.status(200).json(result)
+
+    }catch(error){
+       res.status(400).json({
+        error: "Post fetching failed",
+        details: error
+       })
+    }
+}
+const getMyPosts = async(req: Request, res: Response)=>{
+    try{
+
+        const user = req.user
+        console.log("User in getMyPosts:", user)
+        if(!user){
+            return res.status(401).json({message: "user not found unauthorized"})
+        }
+ 
+         const result = await postService.getMyPosts(user.id)
          res.status(200).json(result)
 
     }catch(error){
@@ -82,5 +101,6 @@ const getPostById = async(req: Request, res: Response)=>{
 export const postController = {
     createPost,
     getAllPosts,
-    getPostById
+    getPostById,
+    getMyPosts
 }
