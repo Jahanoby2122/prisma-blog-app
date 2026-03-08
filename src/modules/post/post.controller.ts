@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { postService } from './post.services';
 import { Post, PostStatus } from '../../../generated/prisma/client';
 import pagenationShortingHelpers from '../../helpers/paganationShortingHelpers';
+import { UserRole } from '../../middleware/auth';
 
 const createPost = async (req:Request, res:Response) => {
    
@@ -98,9 +99,76 @@ const getMyPosts = async(req: Request, res: Response)=>{
     }
 }
 
+
+const updatePost = async (req: Request, res: Response) => {
+    try {
+        const user = req.user;
+        if (!user) {
+            throw new Error("You are unauthorized!")
+        }
+
+        const { postId } = req.params;
+        const isAdmin = user.role === UserRole.ADMIN
+        const result = await postService.updatePost(postId as string, req.body, user.id, isAdmin);
+        res.status(200).json(result)
+    } catch (e) {
+        const errorMessage = (e instanceof Error) ? e.message : "Post update failed!"
+        res.status(400).json({
+            error: errorMessage,
+            details: e
+        })
+    }
+}
+
+
+const deletePost = async (req: Request, res: Response) => {
+    try {
+        const user = req.user;
+        if (!user) {
+            throw new Error("You are unauthorized!")
+        }
+
+        const { postId } = req.params;
+        const isAdmin = user.role === UserRole.ADMIN
+        const result = await postService.deletePost(postId as string, user.id, isAdmin);
+        res.status(200).json(result)
+    } catch (e) {
+        const errorMessage = (e instanceof Error) ? e.message : "Post delete failed!"
+        res.status(400).json({
+            error: errorMessage,
+            details: e
+        })
+    }
+}
+
+const getStats = async (req: Request, res: Response) => {
+    try {
+
+        console.log("API hit: /get-stats"); // request আসছে কিনা দেখার জন্য
+
+        const result = await postService.getStats();
+
+        console.log("Stats result:", result); // console এ result দেখাবে
+
+        res.status(200).json(result)
+
+    } catch (e) {
+        console.log("Error:", e) // error console এ দেখাবে
+
+        const errorMessage = (e instanceof Error) ? e.message : "getStats failed!"
+        res.status(400).json({
+            error: errorMessage,
+            details: e
+        })
+    }
+}
+
 export const postController = {
     createPost,
     getAllPosts,
     getPostById,
-    getMyPosts
+    getMyPosts,
+    updatePost,
+    deletePost,
+    getStats
 }
