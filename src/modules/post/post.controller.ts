@@ -1,10 +1,12 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { postService } from './post.services';
 import { Post, PostStatus } from '../../../generated/prisma/client';
 import pagenationShortingHelpers from '../../helpers/paganationShortingHelpers';
 import { UserRole } from '../../middleware/auth';
 
-const createPost = async (req:Request, res:Response) => {
+const createPost = async (req:Request, res:Response, next: NextFunction) => {
+
+
    
     try{
 
@@ -14,13 +16,12 @@ const createPost = async (req:Request, res:Response) => {
         }
 
         console.log(req.user)
-        
-
         const result = await postService.createPost(req.body , req.user.id)
         res.status(201).json(result)
 
     }catch (error){
-        console.error("Error creating post:", error)
+        next(error)
+       
     }
 };
 
@@ -64,12 +65,13 @@ const getAllPosts = async (req: Request, res: Response) => {
 
 const getPostById = async(req: Request, res: Response)=>{
     try{
-        const { postid } = req.params
-        if(!postid){
+        const { PostId } = req.params
+        console.log(PostId)
+        if(!PostId){
             return res.status(400).json({error: "Post ID is required"})
         }
 
-         const result = await postService.getPostById(postid as string)
+         const result = await postService.getPostById(PostId as string)
          res.status(200).json(result)
 
     }catch(error){
@@ -162,6 +164,9 @@ const getStats = async (req: Request, res: Response) => {
         })
     }
 }
+
+
+console.log('hello world',)
 
 export const postController = {
     createPost,
